@@ -18,10 +18,14 @@ A fast file indexer and search tool written in Rust. Index metadata for all file
 git clone https://github.com/yourusername/findex.git
 cd findex
 
-# Build release binary
-make build
+# Build and install to /usr/local/bin
+make install
 
-# Binary is at ./target/release/findex
+# Or install to a custom location
+make install PREFIX=~/.local
+
+# Uninstall
+make uninstall
 ```
 
 ## Usage
