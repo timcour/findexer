@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make build:*)",
+      "Bash(make test:*)",
+      "Bash(./target/release/findex:*)"
+    ]
+  }
+}

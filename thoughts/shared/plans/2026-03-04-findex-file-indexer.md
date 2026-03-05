@@ -228,14 +228,14 @@ pub mod db;
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Project compiles: `make build`
-- [ ] Tests pass: `make test`
-- [ ] Database file created at expected location when opened
-- [ ] Migration creates `files` table with correct schema
-- [ ] Running migrations twice does not error
+- [x] Project compiles: `make build`
+- [x] Tests pass: `make test`
+- [x] Database file created at expected location when opened
+- [x] Migration creates `files` table with correct schema
+- [x] Running migrations twice does not error
 
 #### Manual Verification:
-- [ ] `./target/release/findex` runs without error
+- [x] `./target/release/findex` runs without error
 
 ---
 
@@ -473,14 +473,14 @@ pub mod file_meta;
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All tests pass: `make test`
-- [ ] File metadata correctly extracted (filename, extension, size, timestamps)
-- [ ] xxHash produces consistent 16-char hex strings
-- [ ] Symlinks are skipped during discovery
-- [ ] File list is sorted for deterministic ordering
+- [x] All tests pass: `make test`
+- [x] File metadata correctly extracted (filename, extension, size, timestamps)
+- [x] xxHash produces consistent 16-char hex strings
+- [x] Symlinks are skipped during discovery
+- [x] File list is sorted for deterministic ordering
 
 #### Manual Verification:
-- [ ] Create a test directory with various files and verify discovery works
+- [x] Create a test directory with various files and verify discovery works
 
 ---
 
@@ -847,11 +847,11 @@ pub mod state;
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All tests pass: `make test`
-- [ ] Files are indexed with correct metadata in database
-- [ ] Parallel processing works (rayon)
-- [ ] State file created during indexing
-- [ ] State file cleared after successful completion
+- [x] All tests pass: `make test`
+- [x] Files are indexed with correct metadata in database
+- [x] Parallel processing works (rayon)
+- [x] State file created during indexing
+- [x] State file cleared after successful completion
 
 #### Manual Verification:
 - [ ] Index a directory, interrupt with Ctrl+C, resume - continues from where it left off
@@ -1241,13 +1241,13 @@ pub mod state;
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All tests pass: `make test`
-- [ ] Search by filename returns partial matches
-- [ ] Search by hash returns exact matches
-- [ ] Search by filesize returns exact matches
-- [ ] Search by path returns partial matches
-- [ ] Duplicate count is calculated correctly
-- [ ] Table and short format output correctly
+- [x] All tests pass: `make test`
+- [x] Search by filename returns partial matches
+- [x] Search by hash returns exact matches
+- [x] Search by filesize returns exact matches
+- [x] Search by path returns partial matches
+- [x] Duplicate count is calculated correctly
+- [x] Table and short format output correctly
 
 #### Manual Verification:
 - [ ] Search results display in readable table format
@@ -1485,12 +1485,12 @@ run-search:
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Build succeeds: `make build`
-- [ ] All tests pass: `make test`
-- [ ] CLI parses arguments correctly
-- [ ] `findex --help` shows usage
-- [ ] `findex index --help` shows index options
-- [ ] `findex search --help` shows search options
+- [x] Build succeeds: `make build`
+- [x] All tests pass: `make test`
+- [x] CLI parses arguments correctly
+- [x] `findex --help` shows usage
+- [x] `findex index --help` shows index options
+- [x] `findex search --help` shows search options
 
 #### Manual Verification:
 - [ ] `findex index /some/path` indexes files with progress bar
