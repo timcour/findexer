@@ -9,6 +9,8 @@ mod state;
 use clap::Parser;
 use cli::{Cli, Commands};
 use indicatif::{ProgressBar, ProgressStyle};
+use std::cell::Cell;
+use std::time::{Duration, Instant};
 
 fn main() {
     if let Err(e) = run() {
@@ -63,18 +65,30 @@ fn run_index(path: &std::path::Path, batch_size: usize) -> Result<(), Box<dyn st
     let files = discovery::discover_files(path);
     println!("Found {} files", files.len());
 
-    // Setup progress bar
+    // Setup progress bar with message template
     let pb = ProgressBar::new(files.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})\n{msg}")
             .unwrap()
             .progress_chars("#>-"),
     );
 
-    // Index with progress updates
-    let result = indexer::index_directory(&mut conn, path, batch_size)?;
+    // Throttle progress updates to every 50ms
+    let last_update = Cell::new(Instant::now());
+    let update_interval = Duration::from_millis(50);
 
+    // Index with progress updates
+    let result = indexer::index_directory(&mut conn, path, batch_size, Some(|update: indexer::ProgressUpdate| {
+        let now = Instant::now();
+        if now.duration_since(last_update.get()) >= update_interval {
+            pb.set_position(update.files_completed as u64);
+            pb.set_message(update.current_file.display().to_string());
+            last_update.set(now);
+        }
+    }))?;
+
+    pb.set_position(pb.length().unwrap_or(0));
     pb.finish_with_message("done");
 
     println!("\nIndexing complete:");

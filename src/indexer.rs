@@ -3,7 +3,7 @@ use crate::file_meta::FileMeta;
 use crate::state::{IndexState, StateError};
 use rayon::prelude::*;
 use rusqlite::Connection;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -20,6 +20,13 @@ pub struct IndexResult {
     pub files_processed: usize,
     pub files_skipped: usize,
     pub errors: usize,
+}
+
+/// Progress update sent during indexing
+pub struct ProgressUpdate {
+    pub current_file: PathBuf,
+    pub files_completed: usize,
+    pub total_files: usize,
 }
 
 /// Insert or update a file record in the database.
@@ -58,11 +65,17 @@ pub fn upsert_file(conn: &Connection, meta: &FileMeta) -> Result<(), rusqlite::E
 /// 3. Process remaining files in parallel batches
 /// 4. Collect results and batch-insert to DB (single-threaded for SQLite)
 /// 5. Update state after each batch
-pub fn index_directory(
+///
+/// The optional `progress_callback` is called for each file processed.
+pub fn index_directory<F>(
     conn: &mut Connection,
     root: &Path,
     batch_size: usize,
-) -> Result<IndexResult, IndexError> {
+    mut progress_callback: Option<F>,
+) -> Result<IndexResult, IndexError>
+where
+    F: FnMut(ProgressUpdate),
+{
     let root_str = root.display().to_string();
 
     // Load or create state
@@ -77,6 +90,7 @@ pub fn index_directory(
     // Discover files
     let all_files = crate::discovery::discover_files(root);
     state.total_discovered = all_files.len();
+    let total_files = all_files.len();
 
     // Filter out already processed
     let pending_files: Vec<_> = all_files
@@ -89,6 +103,8 @@ pub fn index_directory(
         files_skipped: state.processed_files.len(),
         errors: 0,
     };
+
+    let mut files_completed = result.files_skipped;
 
     // Process in batches
     for batch in pending_files.chunks(batch_size) {
@@ -119,6 +135,16 @@ pub fn index_directory(
                 }
             }
             state.mark_processed(path);
+            files_completed += 1;
+
+            // Report progress
+            if let Some(ref mut callback) = progress_callback {
+                callback(ProgressUpdate {
+                    current_file: path.clone(),
+                    files_completed,
+                    total_files,
+                });
+            }
         }
         tx.commit()?;
 
@@ -214,7 +240,7 @@ mod tests {
 
         let (_tmp_db, mut conn) = setup_test_db();
 
-        let result = index_directory(&mut conn, tmp_files.path(), 10).unwrap();
+        let result = index_directory::<fn(ProgressUpdate)>(&mut conn, tmp_files.path(), 10, None).unwrap();
 
         assert_eq!(result.files_processed, 2);
         assert_eq!(result.errors, 0);
@@ -234,7 +260,7 @@ mod tests {
 
         let (_tmp_db, mut conn) = setup_test_db();
 
-        let result = index_directory(&mut conn, tmp_files.path(), 10).unwrap();
+        let result = index_directory::<fn(ProgressUpdate)>(&mut conn, tmp_files.path(), 10, None).unwrap();
 
         assert_eq!(result.files_processed, 2);
 
@@ -250,5 +276,27 @@ mod tests {
         assert_eq!(paths.len(), 2);
         assert!(paths[0].ends_with("a.txt"));
         assert!(paths[1].ends_with("subdir/b.txt"));
+    }
+
+    #[test]
+    fn test_index_directory_with_progress() {
+        let tmp_files = TempDir::new().unwrap();
+        std::fs::write(tmp_files.path().join("a.txt"), "content a").unwrap();
+        std::fs::write(tmp_files.path().join("b.txt"), "content b").unwrap();
+
+        let (_tmp_db, mut conn) = setup_test_db();
+
+        let mut progress_count = 0;
+        let result = index_directory(
+            &mut conn,
+            tmp_files.path(),
+            10,
+            Some(|_update: ProgressUpdate| {
+                progress_count += 1;
+            }),
+        ).unwrap();
+
+        assert_eq!(result.files_processed, 2);
+        assert_eq!(progress_count, 2);
     }
 }
